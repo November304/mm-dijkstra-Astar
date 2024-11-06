@@ -33,10 +33,8 @@ public class Generator : MonoBehaviour
                 grid[x, y] = TileState.NORMAL;
             }
         }
-        // Générer les murs aléatoires
         GenerateWalls();
 
-        // Générer des positions aléatoires pour le départ et la fin
         SetRandomStartEndPositions();
 
 
