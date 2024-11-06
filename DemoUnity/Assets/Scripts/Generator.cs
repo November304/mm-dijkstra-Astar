@@ -5,9 +5,10 @@ public class Generator : MonoBehaviour
 {
     [SerializeField] private Tilemap tilemap;
 
-    [SerializeField] private Vector2Int size;
+    private Vector2Int mapSize = new Vector2Int(0, 0);
+    private float wallChance;
 
-    [SerializeField] private int mapSeed;
+    public static Generator Instance;
 
     private TileState[,] grid;
 
@@ -18,54 +19,45 @@ public class Generator : MonoBehaviour
     [SerializeField] private Tile endTile;
     [SerializeField] private Tile pathTile;
 
-    private Vector2Int startPos;
-    private Vector2Int endPos;
-
-    public void Generate()
+    private void Awake()
     {
-        Random.InitState(mapSeed);
+        Instance = this;
+    }
+
+    /// <summary>
+    /// Génère une map aléatoire
+    /// </summary>
+    /// <param name="seed">Le seed sur lequel basé la map</param>
+    /// <param name="size">La taille de la map</param>
+    /// <param name="wallChance">La chance d'avoir un mur</param>
+    public void Generate(int seed, Vector2Int size, float wallChance)
+    {
+        Random.InitState(seed);
+        mapSize = size;
+        this.wallChance = wallChance;
         grid = new TileState[size.x, size.y];
 
-        for(int x = 0; x < size.x; x++)
+        for (int x = 0; x < size.x; x++)
         {
-            for(int y = 0; y < size.y; y++)
+            for (int y = 0; y < size.y; y++)
             {
                 grid[x, y] = TileState.NORMAL;
             }
         }
         GenerateWalls();
-
-        SetRandomStartEndPositions();
-
-
-        AlgoDijsktra algo = new(grid,startPos, endPos);
-        var path = algo.FindPath();
-
-        // Afficher le chemin
-        if (path != null)
-        {
-            Debug.Log("Path found with " + path.Count + " steps");  
-            foreach (var position in path)
-            {
-                grid[position.x, position.y] = TileState.PATH;
-            }
-        }
-        else
-        {
-            Debug.LogWarning("No path found");
-        }
-
-        grid[startPos.x, startPos.y] = TileState.START;
-        grid[endPos.x, endPos.y] = TileState.END;
+        RenderGrid();
     }
 
+    /// <summary>
+    /// Génération aléatoire des murs
+    /// </summary>
     private void GenerateWalls()
     {
-        for (int x = 0; x < size.x; x++)
+        for (int x = 0; x < mapSize.x; x++)
         {
-            for (int y = 0; y < size.y; y++)
+            for (int y = 0; y < mapSize.y; y++)
             {
-                if (Random.Range(0,10) < 3)
+                if (Random.Range(0f, 1f) < wallChance)
                 {
                     grid[x, y] = TileState.WALL;
                 }
@@ -73,25 +65,15 @@ public class Generator : MonoBehaviour
         }
     }
 
-    private void SetRandomStartEndPositions()
-    {
-        do
-        {
-            startPos = new Vector2Int(Random.Range(0, size.x), Random.Range(0, size.y));
-        } while (grid[startPos.x, startPos.y] == TileState.WALL);
-
-        do
-        {
-            endPos = new Vector2Int(Random.Range(0, size.x), Random.Range(0, size.y));
-        } while (endPos == startPos || grid[endPos.x, endPos.y] == TileState.WALL);
-
-    }
-
+    /// <summary>
+    /// Affiche la grid dans le tilemap
+    /// </summary>
+    /// <param name="grid">La grid a afficher</param>
     public void RenderGrid()
     {
-        for (int x = 0;x < size.x;x++)
+        for (int x = 0; x < mapSize.x; x++)
         {
-              for (int y = 0;y < size.y;y++)
+            for (int y = 0; y < mapSize.y; y++)
             {
                 switch (grid[x, y])
                 {
@@ -110,15 +92,49 @@ public class Generator : MonoBehaviour
                     case TileState.PATH:
                         tilemap.SetTile(new Vector3Int(x, y, 0), pathTile);
                         break;
-                    
+
                 }
             }
         }
     }
 
-    private void Start()
+    /// <summary>
+    /// Retourne la taille de la map
+    /// </summary>
+    /// <returns>Le vecteur d'entier pour la taille de la map</returns>
+    public Vector2Int GetMapSize()
     {
-        Generate();
-        RenderGrid();
+        return mapSize;
+    }
+
+    /// <summary>
+    /// Renvoie la grid actuelle
+    /// </summary>
+    /// <returns>Le tableau a 2 dimensions</returns>
+    public TileState[,] GetGrid()
+    {
+        return grid;
+    }
+
+    /// <summary>
+    /// Set une position dans la grid
+    /// </summary>
+    /// <param name="pos">La position a set dans la grid</param>
+    /// <param name="state">L'etat a mettre dans la grid</param>
+    public void SetPos(Vector2Int pos, TileState state)
+    {
+        grid[pos.x, pos.y] = state;
+    }
+
+    /// <summary>
+    /// Set le chemin dans la grid
+    /// </summary>
+    /// <param name="chemin">La liste des positions du chemin</param>
+    public void SetChemin(Vector2Int[] chemin)
+    {
+        foreach (Vector2Int pos in chemin)
+        {
+            grid[pos.x, pos.y] = TileState.PATH;
+        }
     }
 }

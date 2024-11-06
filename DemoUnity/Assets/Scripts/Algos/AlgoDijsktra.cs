@@ -1,27 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AlgoDijsktra
+public class AlgoDijsktra : Pathfinding
 {
-    private TileState[,] grid;
-    private Vector2Int start;
-    private Vector2Int end;
-    private int width;
-    private int height;
-
-    public AlgoDijsktra(TileState[,] grid, Vector2Int start, Vector2Int end)
+    public AlgoDijsktra(TileState[,] grid, Vector2Int start, Vector2Int end) : base(grid, start, end)
     {
-        this.grid = grid;
-        this.start = start;
-        this.end = end;
-        width = grid.GetLength(0);
-        height = grid.GetLength(1);
     }
 
-    public List<Vector2Int> FindPath()
+    public override List<Vector2Int> FindPath()
     {
-        var openList = new List<Node>();
-        var startNode = new Node(start, 0);
+        var openList = new List<NodeDijsktra>();
+        var startNode = new NodeDijsktra(start, 0);
         openList.Add(startNode);
 
         var distances = new Dictionary<Vector2Int, float>();
@@ -60,7 +49,7 @@ public class AlgoDijsktra
                 if (!distances.ContainsKey(neighbor) || newDist < distances[neighbor])
                 {
                     distances[neighbor] = newDist;
-                    var neighborNode = new Node(neighbor, newDist);
+                    var neighborNode = new NodeDijsktra(neighbor, newDist);
                     neighborNode.Previous = currentNode;
                     openList.Add(neighborNode);
                 }
@@ -94,7 +83,7 @@ public class AlgoDijsktra
         return neighbors;
     }
 
-    private List<Vector2Int> ReconstructPath(Node endNode)
+    private List<Vector2Int> ReconstructPath(NodeDijsktra endNode)
     {
         var path = new List<Vector2Int>();
         var currentNode = endNode;

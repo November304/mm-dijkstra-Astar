@@ -1,24 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AlgoAEtoile
+public class AlgoAStar : Pathfinding
 {
-    private TileState[,] grid;
-    private Vector2Int start;
-    private Vector2Int end;
-    private int width;
-    private int height;
-
-    public AlgoAEtoile(TileState[,] grid, Vector2Int start, Vector2Int end)
+    public AlgoAStar(TileState[,] grid, Vector2Int start, Vector2Int end) : base(grid, start, end)
     {
-        this.grid = grid;
-        this.start = start;
-        this.end = end;
-        width = grid.GetLength(0);
-        height = grid.GetLength(1);
     }
 
-    public List<Vector2Int> FindPath()
+    public override List<Vector2Int> FindPath()
     {
         List<NodeAStar> openList = new();
         NodeAStar startNode = new(start, 0, Heuristic(start, end));
