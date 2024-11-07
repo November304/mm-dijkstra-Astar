@@ -20,6 +20,5 @@ Pour visualiser ces algorithmes, nous utilisons **Unity** afin de modéliser des
 ## Structure du projet
 
 Ce projet comprend :
-- **Implémentations de Dijkstra et A\*** en Python,
+- **Documentation et Implémentations de Dijkstra et A\*** en Python et Markdown dans un Jupyter Notebook,
 - **Scène Unity** pour une visualisation interactive,
-- **Documentation** expliquant les algorithmes et leurs applications.
