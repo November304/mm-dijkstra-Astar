@@ -1,16 +1,9 @@
 
 using UnityEngine;
 
-public class NodeDijsktra
+public class NodeDijsktra : NodeAbs
 {
-    public Vector2Int Position;
-    public float Distance;
-    public NodeDijsktra Previous;
-
-    public NodeDijsktra(Vector2Int position, float distance)
+    public NodeDijsktra(Vector2Int position, float distance) : base(position, distance)
     {
-        Position = position;
-        Distance = distance;
-        Previous = null;
     }
 }

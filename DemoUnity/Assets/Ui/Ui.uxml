@@ -13,9 +13,12 @@
             <engine:VisualElement name="chemin" style="flex-grow: 1;">
                 <engine:Label text="Pathfinding" name="pathLabel" style="-unity-text-align: upper-center;" />
                 <engine:Vector2IntField label="Start pos" name="startPosField" />
+                <engine:Button text="Set Manually" name="setStartPosManualBtn" />
                 <engine:Vector2IntField label="End pos" name="endPosField" />
+                <engine:Button text="Set Manually" name="setEndPosManualBtn" />
                 <engine:Button text="Randomize Positions" name="randomizePosBtn" />
                 <engine:EnumField label="Algorithme " value="Center" type="AlgoGeneration, Assembly-CSharp" name="choixAlgoEnum" />
+                <engine:EnumField label="Type deroulement" value="Center" type="TypeDeroulement, Assembly-CSharp" name="choixTypeDeroulementEnum" />
                 <engine:Label text="Label" name="labelErrorPath" style="display: none;" />
                 <engine:Button text="Generate Path" name="generationChemin" />
             </engine:VisualElement>

@@ -1,100 +1,88 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AlgoDijsktra : Pathfinding
+public class AlgoDijsktra : AlgoPathfinding
 {
+    private List<NodeDijsktra> openList;
+    private Dictionary<Vector2Int, float> distances;
+    private HashSet<Vector2Int> visited;
+    private NodeDijsktra currentNode;
+
     public AlgoDijsktra(TileState[,] grid, Vector2Int start, Vector2Int end) : base(grid, start, end)
     {
+        // Initialize the step-by-step state variables
+        openList = new List<NodeDijsktra>();
+        distances = new Dictionary<Vector2Int, float>();
+        visited = new HashSet<Vector2Int>();
+
+        // Start with the starting node
+        NodeDijsktra startNode = new(start, 0);
+        openList.Add(startNode);
+        distances[start] = 0;
     }
 
     public override List<Vector2Int> FindPath()
     {
-        var openList = new List<NodeDijsktra>();
-        var startNode = new NodeDijsktra(start, 0);
-        openList.Add(startNode);
+        List<Vector2Int> fullPath = new();
 
-        var distances = new Dictionary<Vector2Int, float>();
-        var visited = new HashSet<Vector2Int>();
-
-        distances[start] = 0;
-
-        while (openList.Count > 0)
+        while (true)
         {
-            // Trouver le noeud avec la distance minimale dans openList
-            openList.Sort((a, b) => a.Distance.CompareTo(b.Distance));
-            var currentNode = openList[0];
-            openList.RemoveAt(0);
+            Vector2Int? result = StepFindPath();
+            if (result == null)
+                break;
+            fullPath.Add(result.Value);
+        }
 
-            if (currentNode.Position == end)
-            {
-                return ReconstructPath(currentNode);
-            }
+        return fullPath.Count > 0 ? ReconstructPath(currentNode) : null;
+    }
 
-            if (visited.Contains(currentNode.Position))
+    public Vector2Int? StepFindPath()
+    {
+        if (openList.Count == 0)
+        {
+            return null;
+        }
+
+        // Find the node with the minimal distance
+        openList.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+        currentNode = openList[0];
+        openList.RemoveAt(0);
+
+        // If we reached the end node, return null to signal completion
+        if (currentNode.Position == end)
+        {
+            return null;
+        }
+
+        if (visited.Contains(currentNode.Position))
+        {
+            return StepFindPath();
+        }
+
+        visited.Add(currentNode.Position);
+
+        foreach (Vector2Int neighbor in GetNeighbors(currentNode.Position))
+        {
+            if (visited.Contains(neighbor) || grid[neighbor.x, neighbor.y] == TileState.WALL)
             {
                 continue;
             }
 
-            visited.Add(currentNode.Position);
+            float newDist = distances[currentNode.Position] + 1;
 
-            foreach (var neighbor in GetNeighbors(currentNode.Position))
+            if (!distances.ContainsKey(neighbor) || newDist < distances[neighbor])
             {
-                if (visited.Contains(neighbor) || grid[neighbor.x, neighbor.y] == TileState.WALL)
+                distances[neighbor] = newDist;
+                NodeDijsktra neighborNode = new(neighbor, newDist)
                 {
-                    continue;
-                }
-
-                float newDist = distances[currentNode.Position] + 1;
-
-                if (!distances.ContainsKey(neighbor) || newDist < distances[neighbor])
-                {
-                    distances[neighbor] = newDist;
-                    var neighborNode = new NodeDijsktra(neighbor, newDist);
-                    neighborNode.Previous = currentNode;
-                    openList.Add(neighborNode);
-                }
+                    Previous = currentNode
+                };
+                openList.Add(neighborNode);
             }
         }
 
-        return null;
+        return currentNode.Position;
     }
 
-    private List<Vector2Int> GetNeighbors(Vector2Int position)
-    {
-        var neighbors = new List<Vector2Int>();
-
-        var directions = new Vector2Int[]
-        {
-            new Vector2Int(0, 1),  // Haut
-            new Vector2Int(1, 0),  // Droite
-            new Vector2Int(0, -1), // Bas
-            new Vector2Int(-1, 0)  // Gauche
-        };
-
-        foreach (var direction in directions)
-        {
-            var neighborPos = position + direction;
-            if (neighborPos.x >= 0 && neighborPos.x < width && neighborPos.y >= 0 && neighborPos.y < height)
-            {
-                neighbors.Add(neighborPos);
-            }
-        }
-
-        return neighbors;
-    }
-
-    private List<Vector2Int> ReconstructPath(NodeDijsktra endNode)
-    {
-        var path = new List<Vector2Int>();
-        var currentNode = endNode;
-
-        while (currentNode != null)
-        {
-            path.Add(currentNode.Position);
-            currentNode = currentNode.Previous;
-        }
-
-        path.Reverse();
-        return path;
-    }
+    
 }

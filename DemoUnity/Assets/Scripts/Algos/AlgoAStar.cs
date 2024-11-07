@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AlgoAStar : Pathfinding
+public class AlgoAStar : AlgoPathfinding
 {
     public AlgoAStar(TileState[,] grid, Vector2Int start, Vector2Int end) : base(grid, start, end)
     {
@@ -65,42 +65,4 @@ public class AlgoAStar : Pathfinding
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
 
-    private List<Vector2Int> GetNeighbors(Vector2Int position)
-    {
-        var neighbors = new List<Vector2Int>();
-
-        var directions = new Vector2Int[]
-        {
-            new Vector2Int(0, 1),  // Haut
-            new Vector2Int(1, 0),  // Droite
-            new Vector2Int(0, -1), // Bas
-            new Vector2Int(-1, 0)  // Gauche
-        };
-
-        foreach (var direction in directions)
-        {
-            var neighborPos = position + direction;
-            if (neighborPos.x >= 0 && neighborPos.x < width && neighborPos.y >= 0 && neighborPos.y < height)
-            {
-                neighbors.Add(neighborPos);
-            }
-        }
-
-        return neighbors;
-    }
-
-    private List<Vector2Int> ReconstructPath(NodeAStar endNode)
-    {
-        var path = new List<Vector2Int>();
-        NodeAStar currentNode = endNode;
-
-        while (currentNode != null)
-        {
-            path.Add(currentNode.Position);
-            currentNode = currentNode.Previous;
-        }
-
-        path.Reverse();
-        return path;
-    }
 }

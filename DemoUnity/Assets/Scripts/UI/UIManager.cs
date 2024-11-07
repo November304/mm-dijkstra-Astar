@@ -151,7 +151,7 @@ public class UIManager : MonoBehaviour
         AlgoGeneration algo = (AlgoGeneration)value;
 
         labelErrorPathfinding.style.display = DisplayStyle.None;
-        Pathfinding pathfinding = algo switch
+        AlgoPathfinding pathfinding = algo switch
         {
             AlgoGeneration.DIJKSTRA => new AlgoDijsktra(Generator.Instance.GetGrid(), startPos, endPos),
             AlgoGeneration.A_STAR => new AlgoAStar(Generator.Instance.GetGrid(), startPos, endPos),
