@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: a70438926d48077428edc0efc5acd445
+guid: daa90399d8cc94748b81ecc680578580
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 5515439225188256779
-    second: WallTile_0
+      213: -4581550900900903246
+    second: VoisinTile_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: WallTile_0
+      name: VoisinTile_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b0c0a95d0c6ca8c40800000000000000
-      internalID: 5515439225188256779
+      spriteID: 2b64e6fcabf0b60c0800000000000000
+      internalID: -4581550900900903246
       vertices: []
       indices: 
       edges: []

@@ -1,7 +1,7 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
+#nullable enable
 public abstract class AlgoPathfinding
 {
     protected TileState[,] grid;
@@ -10,6 +10,10 @@ public abstract class AlgoPathfinding
     protected int width;
     protected int height;
 
+    protected HashSet<Vector2Int> visited;
+    protected PriorityQueue<NodeAbs> openSet;
+    protected Dictionary<Vector2Int, NodeAbs> allNodes;
+
     public AlgoPathfinding(TileState[,] grid, Vector2Int start, Vector2Int end)
     {
         this.grid = grid;
@@ -17,30 +21,28 @@ public abstract class AlgoPathfinding
         this.end = end;
         width = grid.GetLength(0);
         height = grid.GetLength(1);
-    }
 
-    public abstract List<Vector2Int> FindPath();
-
-    protected List<Vector2Int> ReconstructPath(NodeAbs endNode)
-    {
-        List<Vector2Int> path = new();
-        NodeAbs currentNode = endNode;
-
-        while (currentNode != null)
-        {
-            path.Add(currentNode.Position);
-            currentNode = currentNode.Previous;
-        }
-
-        path.Reverse();
-        return path;
+        visited = new HashSet<Vector2Int>();
+        allNodes = new Dictionary<Vector2Int, NodeAbs>();
     }
 
     /// <summary>
-    /// Renvoie la liste des positions voisines valides de la position donnée
+    /// Fully finds the path from start to end.
     /// </summary>
-    /// <param name="position">La position dont on veut les voisins</param>
-    /// <returns>La liste des voisings</returns>
+    /// <returns>The list of positions representing the path.</returns>
+    public abstract List<Vector2Int>? FindPath();
+
+    /// <summary>
+    /// Executes one step of the pathfinding algorithm and provides info about the current step.
+    /// </summary>
+    /// <returns>StepInfo with details about the current step.</returns>
+    public abstract StepInfo? Step();
+
+    /// <summary>
+    /// Retrieves neighbors of a given position.
+    /// </summary>
+    /// <param name="position">The position to find neighbors for.</param>
+    /// <returns>A list of valid neighbor positions.</returns>
     protected List<Vector2Int> GetNeighbors(Vector2Int position)
     {
         List<Vector2Int> neighbors = new();
@@ -64,4 +66,27 @@ public abstract class AlgoPathfinding
 
         return neighbors;
     }
+
+    /// <summary>
+    /// Reconstructs the path from the end node back to the start node.
+    /// </summary>
+    /// <param name="endNode">The end node of the path.</param>
+    /// <returns>The reconstructed path as a list of positions.</returns>
+    protected List<Vector2Int> ReconstructPath(NodeAbs endNode)
+    {
+        List<Vector2Int> path = new();
+        NodeAbs currentNode = endNode;
+
+        while (currentNode != null)
+        {
+            path.Add(currentNode.Position);
+            currentNode = currentNode.Previous;
+        }
+
+        path.Reverse();
+        return path;
+    }
 }
+
+
+

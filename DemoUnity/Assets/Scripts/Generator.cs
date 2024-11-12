@@ -18,6 +18,7 @@ public class Generator : MonoBehaviour
     [SerializeField] private Tile startTile;
     [SerializeField] private Tile endTile;
     [SerializeField] private Tile pathTile;
+    [SerializeField] private Tile visitedTile;
 
     private void Awake()
     {
@@ -91,6 +92,9 @@ public class Generator : MonoBehaviour
                         break;
                     case TileState.PATH:
                         tilemap.SetTile(new Vector3Int(x, y, 0), pathTile);
+                        break;
+                    case TileState.VISITED:
+                        tilemap.SetTile(new Vector3Int(x, y, 0), visitedTile);
                         break;
 
                 }

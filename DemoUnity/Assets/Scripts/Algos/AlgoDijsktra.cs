@@ -3,72 +3,64 @@ using UnityEngine;
 
 public class AlgoDijsktra : AlgoPathfinding
 {
-    private List<NodeDijsktra> openList;
     private Dictionary<Vector2Int, float> distances;
-    private HashSet<Vector2Int> visited;
-    private NodeDijsktra currentNode;
+    private NodeAbs currentNode;
 
-    public AlgoDijsktra(TileState[,] grid, Vector2Int start, Vector2Int end) : base(grid, start, end)
+    public AlgoDijsktra(TileState[,] grid, Vector2Int start, Vector2Int end)
+        : base(grid, start, end)
     {
-        // Initialize the step-by-step state variables
-        openList = new List<NodeDijsktra>();
+        // Initialize step-by-step state variables
+        openSet = new PriorityQueue<NodeAbs>();
         distances = new Dictionary<Vector2Int, float>();
-        visited = new HashSet<Vector2Int>();
 
-        // Start with the starting node
+        // Add the starting node
         NodeDijsktra startNode = new(start, 0);
-        openList.Add(startNode);
+        openSet.Enqueue(startNode, 0);
         distances[start] = 0;
+
+        // Initialize visited set and current node
+        visited = new HashSet<Vector2Int>();
     }
 
-    public override List<Vector2Int> FindPath()
+    public override List<Vector2Int>? FindPath()
     {
-        List<Vector2Int> fullPath = new();
-
-        while (true)
+        while (openSet.Count > 0)
         {
-            Vector2Int? result = StepFindPath();
-            if (result == null)
-                break;
-            fullPath.Add(result.Value);
+            StepInfo? step = Step();
+            if (step == null)
+            {
+                return null;
+            }
+            if (step.Value.Position == end)
+            {
+                return ReconstructPath(currentNode);
+            }
         }
 
-        return fullPath.Count > 0 ? ReconstructPath(currentNode) : null;
+        return null;
     }
 
-    public Vector2Int? StepFindPath()
+    public override StepInfo? Step()
     {
-        if (openList.Count == 0)
-        {
+        if (openSet.Count == 0)
             return null;
-        }
 
-        // Find the node with the minimal distance
-        openList.Sort((a, b) => a.Distance.CompareTo(b.Distance));
-        currentNode = openList[0];
-        openList.RemoveAt(0);
+        // Dequeue the node with the smallest distance
+        currentNode = openSet.Dequeue();
 
-        // If we reached the end node, return null to signal completion
-        if (currentNode.Position == end)
-        {
-            return null;
-        }
-
+        // If we have already visited this node, skip it
         if (visited.Contains(currentNode.Position))
-        {
-            return StepFindPath();
-        }
+            return new StepInfo(currentNode.Position, currentNode.Distance, false, 0, true);
 
         visited.Add(currentNode.Position);
 
+        // Process neighbors
         foreach (Vector2Int neighbor in GetNeighbors(currentNode.Position))
         {
             if (visited.Contains(neighbor) || grid[neighbor.x, neighbor.y] == TileState.WALL)
-            {
                 continue;
-            }
 
-            float newDist = distances[currentNode.Position] + 1;
+            float newDist = currentNode.Distance + 1; // Assume uniform cost for Dijsktra
 
             if (!distances.ContainsKey(neighbor) || newDist < distances[neighbor])
             {
@@ -77,12 +69,18 @@ public class AlgoDijsktra : AlgoPathfinding
                 {
                     Previous = currentNode
                 };
-                openList.Add(neighborNode);
+                openSet.Enqueue(neighborNode, newDist);
+                allNodes[neighbor] = neighborNode;
             }
         }
 
-        return currentNode.Position;
+        // Return step information
+        return new StepInfo(
+            currentNode.Position,
+            currentNode.Distance,
+            currentNode.Position == end,
+            0, // No heuristic in Dijsktra
+            true
+        );
     }
-
-    
 }

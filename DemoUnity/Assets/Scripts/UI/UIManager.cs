@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Random = UnityEngine.Random;
@@ -7,6 +9,9 @@ using Random = UnityEngine.Random;
 public class UIManager : MonoBehaviour
 {
     private VisualElement rootVisualElement;
+
+    [SerializeField] private GameObject prefabDebugInfo;
+    [SerializeField] private Transform debugInfoHolder;
 
     private Button hideShowButton;
     private ScrollView mainScroll;
@@ -19,9 +24,13 @@ public class UIManager : MonoBehaviour
     private Button generateGridButton;
 
     private Vector2IntField startPosField;
+    private Button pickStartPosManual;
     private Vector2IntField endPosField;
+    private Button pickEndPosManual;
+
     private Button randomizeButton;
     private EnumField pathfindingAlgorithmField;
+    private EnumField choixTypeDeroulementEnum;
     private Label labelErrorPathfinding;
     private Button findPathButton;
 
@@ -45,6 +54,7 @@ public class UIManager : MonoBehaviour
         endPosField = rootVisualElement.Q<Vector2IntField>("endPosField");
         randomizeButton = rootVisualElement.Q<Button>("randomizePosBtn");
         pathfindingAlgorithmField = rootVisualElement.Q<EnumField>("choixAlgoEnum");
+        choixTypeDeroulementEnum = rootVisualElement.Q<EnumField>("choixTypeDeroulementEnum");
         labelErrorPathfinding = rootVisualElement.Q<Label>("labelErrorPath");
         findPathButton = rootVisualElement.Q<Button>("generationChemin");
     }
@@ -159,28 +169,81 @@ public class UIManager : MonoBehaviour
         };
 
         StartGeneration();
-        List<Vector2Int> chemin = pathfinding.FindPath();
 
-
-        if (chemin == null)
+        Enum typeDeroulement = choixTypeDeroulementEnum.value;
+        if(typeDeroulement == null)
         {
-            Generator.Instance.SetPos(startPosField.value, TileState.START);
-            Generator.Instance.SetPos(endPosField.value, TileState.END);
-
-            Generator.Instance.RenderGrid();
-            labelErrorPathfinding.text = "No path found";
+            labelErrorPathfinding.text = "No type of deroulement selected";
             labelErrorPathfinding.style.display = DisplayStyle.Flex;
-            return;
+        }
+
+        TypeDeroulement vraiTypeDeroulement = (TypeDeroulement)typeDeroulement;
+
+        switch(vraiTypeDeroulement)
+        {
+            case TypeDeroulement.ALL_IN_ONE:
+                List<Vector2Int>? chemin = pathfinding.FindPath();
+                if (chemin == null)
+                {
+                    Generator.Instance.SetPos(startPosField.value, TileState.START);
+                    Generator.Instance.SetPos(endPosField.value, TileState.END);
+
+                    Generator.Instance.RenderGrid();
+                    labelErrorPathfinding.text = "No path found";
+                    labelErrorPathfinding.style.display = DisplayStyle.Flex;
+                    return;
+                }
+
+
+                Generator.Instance.SetChemin(chemin.ToArray());
+
+                Generator.Instance.SetPos(startPos, TileState.START);
+                Generator.Instance.SetPos(endPos, TileState.END);
+
+                Generator.Instance.RenderGrid();
+                break;
+            case TypeDeroulement.STEP_BY_STEP:
+                StartCoroutine(CoroutineStepByStep(pathfinding));
+                break;
         }
 
 
-        Generator.Instance.SetChemin(chemin.ToArray());
+        
 
-        Generator.Instance.SetPos(startPos, TileState.START);
-        Generator.Instance.SetPos(endPos, TileState.END);
 
+    }
+
+    private IEnumerator CoroutineStepByStep(AlgoPathfinding pathfinding)
+    {
+        Generator.Instance.SetPos(startPosField.value, TileState.START);
+        Generator.Instance.SetPos(endPosField.value, TileState.END);
         Generator.Instance.RenderGrid();
+        StepInfo? step = pathfinding.Step();
+        while (step != null)
+        {
+            Generator.Instance.SetPos(step.Value.Position, TileState.VISITED);
+            Generator.Instance.RenderGrid();
+            SetDebugInfo(step.Value);
+            if(step.Value.Position == endPosField.value)
+            {
+                break;
+            }
+
+            yield return new WaitForSeconds(.5f);
+
+            step = pathfinding.Step();
+        }
+        //TODO : Repasser sur le chemin correct et changer la couleur
+        Debug.Log("Complete");
+    }
 
 
+    private void SetDebugInfo(StepInfo info)
+    {
+        GameObject goPrefba = Instantiate(prefabDebugInfo,debugInfoHolder);
+        goPrefba.transform.SetPositionAndRotation(new Vector3(info.Position.x,info.Position.y)*3.2f,Quaternion.identity);
+        goPrefba.transform.GetChild(0).GetChild(0).GetComponent<TMP_Text>().text = info.Distance+info.Heuristic+"";
+        goPrefba.transform.GetChild(0).GetChild(1).GetComponent<TMP_Text>().text = info.Heuristic+"";
+        goPrefba.transform.GetChild(0).GetChild(2).GetComponent<TMP_Text>().text = info.Distance+"";
     }
 }

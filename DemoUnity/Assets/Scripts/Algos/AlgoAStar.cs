@@ -1,62 +1,89 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+#nullable enable
 public class AlgoAStar : AlgoPathfinding
 {
-    public AlgoAStar(TileState[,] grid, Vector2Int start, Vector2Int end) : base(grid, start, end)
-    {
-    }
+    private Dictionary<Vector2Int, float> distances;
+    private NodeAbs currentNode;
 
-    public override List<Vector2Int> FindPath()
+    public AlgoAStar(TileState[,] grid, Vector2Int start, Vector2Int end)
+        : base(grid, start, end)
     {
-        List<NodeAStar> openList = new();
+        // Initialisation des structures de données
+        openSet = new PriorityQueue<NodeAbs>();
+        distances = new Dictionary<Vector2Int, float>();
+
+        // Ajouter le nœud de départ
         NodeAStar startNode = new(start, 0, Heuristic(start, end));
-        openList.Add(startNode);
-
-        Dictionary<Vector2Int, float> distances = new();
-        HashSet<Vector2Int> visited = new();
-
+        openSet.Enqueue(startNode, startNode.F);
         distances[start] = 0;
 
-        while (openList.Count > 0)
-        {
-            // Tri de openList en fonction de la somme coût + heuristique (f = g + h)
-            openList.Sort((a, b) => a.F.CompareTo(b.F));
-            NodeAStar currentNode = openList[0];
-            openList.RemoveAt(0);
+        // Initialiser les nœuds visités
+        visited = new HashSet<Vector2Int>();
+    }
 
-            if (currentNode.Position == end)
+    public override List<Vector2Int>? FindPath()
+    {
+        // Parcourir les étapes de l'algorithme jusqu'à trouver un chemin ou épuiser les possibilités
+        while (openSet.Count > 0)
+        {
+            StepInfo? step = Step();
+            if(step == null)
+            {
+                return null;
+            }
+            if (step.Value.Position == end)
             {
                 return ReconstructPath(currentNode);
             }
+        }
 
-            if (visited.Contains(currentNode.Position))
-            {
+        return null;
+    }
+
+    public override StepInfo? Step()
+    {
+        if (openSet.Count == 0)
+            return null; 
+
+        // Récupérer le nœud avec la plus basse valeur de f (f = g + h)
+        currentNode = openSet.Dequeue();
+
+        if (visited.Contains(currentNode.Position))
+            return new StepInfo(currentNode.Position, currentNode.Distance, false, ((NodeAStar)currentNode).Heuristic, true);
+
+        visited.Add(currentNode.Position);
+
+        // Traiter les voisins
+        foreach (Vector2Int neighbor in GetNeighbors(currentNode.Position))
+        {
+            if (visited.Contains(neighbor) || grid[neighbor.x, neighbor.y] == TileState.WALL)
                 continue;
-            }
 
-            visited.Add(currentNode.Position);
+            float newDist = currentNode.Distance + 1; // Coût uniforme pour le déplacement
+            float heuristic = Heuristic(neighbor, end);
 
-            foreach (var neighbor in GetNeighbors(currentNode.Position))
+            if (!distances.ContainsKey(neighbor) || newDist < distances[neighbor])
             {
-                if (visited.Contains(neighbor) || grid[neighbor.x, neighbor.y] == TileState.WALL)
+                distances[neighbor] = newDist;
+                NodeAStar neighborNode = new(neighbor, newDist, heuristic)
                 {
-                    continue;
-                }
-
-                float newDist = distances[currentNode.Position] + 1;
-
-                if (!distances.ContainsKey(neighbor) || newDist < distances[neighbor])
-                {
-                    distances[neighbor] = newDist;
-                    NodeAStar neighborNode = new(neighbor, newDist, Heuristic(neighbor, end));
-                    neighborNode.Previous = currentNode;
-                    openList.Add(neighborNode);
-                }
+                    Previous = currentNode
+                };
+                openSet.Enqueue(neighborNode, neighborNode.F);
+                allNodes[neighbor] = neighborNode;
             }
         }
 
-        return null; // Pas de chemin trouvé
+        // Retourner les informations de l'étape
+        return new StepInfo(
+            currentNode.Position,
+            currentNode.Distance,
+            currentNode.Position == end,
+            ((NodeAStar)currentNode).Heuristic,
+            true
+        );
     }
 
     private float Heuristic(Vector2Int a, Vector2Int b)
@@ -64,5 +91,4 @@ public class AlgoAStar : AlgoPathfinding
         // Distance de Manhattan pour une grille
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
-
 }
