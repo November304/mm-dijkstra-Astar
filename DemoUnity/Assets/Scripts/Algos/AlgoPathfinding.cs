@@ -49,10 +49,10 @@ public abstract class AlgoPathfinding
 
         Vector2Int[] directions = new Vector2Int[]
         {
-            new Vector2Int(0, 1),  // Up
-            new Vector2Int(1, 0),  // Right
-            new Vector2Int(0, -1), // Down
-            new Vector2Int(-1, 0)  // Left
+            new(0, 1),  // Up
+            new(1, 0),  // Right
+            new(0, -1), // Down
+            new(-1, 0)  // Left
         };
 
         foreach (Vector2Int direction in directions)
@@ -85,6 +85,20 @@ public abstract class AlgoPathfinding
 
         path.Reverse();
         return path;
+    }
+
+    /// <summary>
+    /// Récupère le chemin basé sur le dernier StepInfo.
+    /// </summary>
+    /// <returns>Le chemin sous forme de liste de positions ou null si aucun chemin n'est trouvé.</returns>
+    public List<Vector2Int>? GetPathFromLastStep()
+    {
+        if (allNodes.ContainsKey(end))
+        {
+            NodeAbs? endNode = allNodes[end];
+            return endNode != null ? ReconstructPath(endNode) : null;
+        }
+        return null;
     }
 }
 

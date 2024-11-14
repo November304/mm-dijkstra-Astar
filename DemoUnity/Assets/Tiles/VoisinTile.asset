@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: VoisinTile
   m_EditorClassIdentifier: 
-  m_Sprite: {fileID: -4581550900900903246, guid: daa90399d8cc94748b81ecc680578580, type: 3}
+  m_Sprite: {fileID: -9125114445478886755, guid: dfb54b9ad94f0344daf1bbbf41c531b7, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1

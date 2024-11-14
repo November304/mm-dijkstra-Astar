@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+#nullable enable
 public class AlgoDijsktra : AlgoPathfinding
 {
     private Dictionary<Vector2Int, float> distances;
