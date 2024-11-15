@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Random = UnityEngine.Random;
@@ -7,6 +9,9 @@ using Random = UnityEngine.Random;
 public class UIManager : MonoBehaviour
 {
     private VisualElement rootVisualElement;
+
+    [SerializeField] private GameObject prefabDebugInfo;
+    [SerializeField] private Transform debugInfoHolder;
 
     private Button hideShowButton;
     private ScrollView mainScroll;
@@ -19,16 +24,26 @@ public class UIManager : MonoBehaviour
     private Button generateGridButton;
 
     private Vector2IntField startPosField;
+    private Button pickStartPosManual;
     private Vector2IntField endPosField;
+    private Button pickEndPosManual;
+
     private Button randomizeButton;
     private EnumField pathfindingAlgorithmField;
+    private EnumField choixTypeDeroulementEnum;
     private Label labelErrorPathfinding;
     private Button findPathButton;
 
     private bool isUiHidden = false;
 
+    private Action setStartPos;
+    private Action setEndPos;
+
+    public static UIManager Instance;
+
     private void Awake()
     {
+        Instance = this;
         rootVisualElement = GetComponent<UIDocument>().rootVisualElement;
 
         hideShowButton = rootVisualElement.Q<Button>("hideShowButton");
@@ -42,11 +57,17 @@ public class UIManager : MonoBehaviour
         generateGridButton = rootVisualElement.Q<Button>("generateBtn");
 
         startPosField = rootVisualElement.Q<Vector2IntField>("startPosField");
+        pickStartPosManual = rootVisualElement.Q<Button>("setStartPosManualBtn");
         endPosField = rootVisualElement.Q<Vector2IntField>("endPosField");
+        pickEndPosManual = rootVisualElement.Q<Button>("setEndPosManualBtn");
         randomizeButton = rootVisualElement.Q<Button>("randomizePosBtn");
         pathfindingAlgorithmField = rootVisualElement.Q<EnumField>("choixAlgoEnum");
+        choixTypeDeroulementEnum = rootVisualElement.Q<EnumField>("choixTypeDeroulementEnum");
         labelErrorPathfinding = rootVisualElement.Q<Label>("labelErrorPath");
         findPathButton = rootVisualElement.Q<Button>("generationChemin");
+
+        setStartPos = () => SetManualPosition(SetPositions.START);
+        setEndPos = () => SetManualPosition(SetPositions.END);
     }
 
     private void OnEnable()
@@ -56,6 +77,8 @@ public class UIManager : MonoBehaviour
         generateGridButton.clicked += StartGeneration;
         findPathButton.clicked += StartPathfinding;
         randomizeButton.clicked += GeneratePositions;
+        pickStartPosManual.clicked += setStartPos;
+        pickEndPosManual.clicked += setEndPos;
     }
 
     private void OnDisable()
@@ -65,6 +88,8 @@ public class UIManager : MonoBehaviour
         generateGridButton.clicked -= StartGeneration;
         findPathButton.clicked -= StartPathfinding;
         randomizeButton.clicked -= GeneratePositions;
+        pickStartPosManual.clicked -= setStartPos;
+        pickEndPosManual.clicked -= setEndPos;
     }
 
     private void SwitchUiVisibility()
@@ -120,10 +145,18 @@ public class UIManager : MonoBehaviour
         Vector2Int mapSize = Generator.Instance.GetMapSize();
         startPosField.value = new Vector2Int(Random.Range(0, mapSize.x), Random.Range(0, mapSize.y));
         endPosField.value = new Vector2Int(Random.Range(0, mapSize.x), Random.Range(0, mapSize.y));
+
+        Generator.Instance.SetPos(startPosField.value, TileState.START);
+        Generator.Instance.SetPos(endPosField.value, TileState.END);
+        Generator.Instance.RenderGrid();
     }
 
     private void StartPathfinding()
     {
+        foreach (Transform child in debugInfoHolder)
+        {
+            Destroy(child.gameObject);
+        }
         Vector2Int mapSize = Generator.Instance.GetMapSize();
         Vector2Int startPos = startPosField.value;
         if (startPos.x < 0 || startPos.x >= mapSize.x || startPos.y < 0 || startPos.y >= mapSize.y)
@@ -151,36 +184,107 @@ public class UIManager : MonoBehaviour
         AlgoGeneration algo = (AlgoGeneration)value;
 
         labelErrorPathfinding.style.display = DisplayStyle.None;
-        Pathfinding pathfinding = algo switch
+        AlgoPathfinding pathfinding = algo switch
         {
             AlgoGeneration.DIJKSTRA => new AlgoDijsktra(Generator.Instance.GetGrid(), startPos, endPos),
             AlgoGeneration.A_STAR => new AlgoAStar(Generator.Instance.GetGrid(), startPos, endPos),
             _ => throw new NotImplementedException(),
         };
 
-        StartGeneration();
-        List<Vector2Int> chemin = pathfinding.FindPath();
-
-
-        if (chemin == null)
+        if (!Generator.Instance.IsGenerated())
         {
-            Generator.Instance.SetPos(startPosField.value, TileState.START);
-            Generator.Instance.SetPos(endPosField.value, TileState.END);
-
-            Generator.Instance.RenderGrid();
-            labelErrorPathfinding.text = "No path found";
-            labelErrorPathfinding.style.display = DisplayStyle.Flex;
-            return;
+            StartGeneration();
         }
 
+        Enum typeDeroulement = choixTypeDeroulementEnum.value;
+        if (typeDeroulement == null)
+        {
+            labelErrorPathfinding.text = "No type of deroulement selected";
+            labelErrorPathfinding.style.display = DisplayStyle.Flex;
+        }
 
-        Generator.Instance.SetChemin(chemin.ToArray());
+        TypeDeroulement vraiTypeDeroulement = (TypeDeroulement)typeDeroulement;
 
-        Generator.Instance.SetPos(startPos, TileState.START);
-        Generator.Instance.SetPos(endPos, TileState.END);
+        switch (vraiTypeDeroulement)
+        {
+            case TypeDeroulement.ALL_IN_ONE:
+                List<Vector2Int>? chemin = pathfinding.FindPath();
+                if (chemin == null)
+                {
+                    labelErrorPathfinding.text = "No path found";
+                    labelErrorPathfinding.style.display = DisplayStyle.Flex;
+                    return;
+                }
 
-        Generator.Instance.RenderGrid();
 
+                Generator.Instance.SetChemin(chemin.ToArray());
 
+                Generator.Instance.SetPos(startPos, TileState.START);
+                Generator.Instance.SetPos(endPos, TileState.END);
+
+                break;
+            case TypeDeroulement.STEP_BY_STEP:
+                StartCoroutine(CoroutineStepByStep(pathfinding));
+                break;
+        }
+    }
+
+    private IEnumerator CoroutineStepByStep(AlgoPathfinding pathfinding)
+    {
+        Generator.Instance.SetPos(startPosField.value, TileState.START);
+        Generator.Instance.SetPos(endPosField.value, TileState.END);
+        StepInfo? step = pathfinding.Step();
+        while (step != null)
+        {
+            if (step.Value.Position != startPosField.value && step.Value.Position != endPosField.value)
+            {
+                Generator.Instance.SetPos(step.Value.Position, TileState.VISITED);
+            }
+            SetDebugInfo(step.Value);
+            if (step.Value.Position == endPosField.value)
+            {
+                break;
+            }
+
+            yield return new WaitForSeconds(.5f);
+
+            step = pathfinding.Step();
+        }
+
+        List<Vector2Int>? chemin = pathfinding.GetPathFromLastStep();
+        if (chemin != null)
+        {
+            Generator.Instance.SetChemin(chemin.ToArray());
+        }
+        else
+        {
+            labelErrorPathfinding.text = "No path found";
+            labelErrorPathfinding.style.display = DisplayStyle.Flex;
+        }
+        Debug.Log("Complete");
+    }
+
+    private void SetManualPosition(SetPositions setPos)
+    {
+        CameraController.Instance.setPos = setPos;
+    }
+
+    private void SetDebugInfo(StepInfo info)
+    {
+        GameObject goPrefba = Instantiate(prefabDebugInfo, debugInfoHolder);
+        goPrefba.transform.SetPositionAndRotation(new Vector3(info.Position.x, info.Position.y) * 3.2f, Quaternion.identity);
+        goPrefba.transform.GetChild(0).GetChild(0).GetComponent<TMP_Text>().text = info.Distance + info.Heuristic + "";
+        goPrefba.transform.GetChild(0).GetChild(1).GetComponent<TMP_Text>().text = info.Heuristic != 0 ? info.Heuristic + "" : "";
+        goPrefba.transform.GetChild(0).GetChild(2).GetComponent<TMP_Text>().text = info.Distance + "";
+    }
+
+    public void SetStartPos(Vector2Int startPos)
+    {
+        startPosField.value = startPos;
+    }
+
+    public void SetEndPos(Vector2Int endPos)
+    {
+        endPosField.value = endPos;
     }
 }

@@ -4,5 +4,6 @@ public enum TileState
     WALL,
     START,
     END,
-    PATH
+    PATH,
+    VISITED
 }

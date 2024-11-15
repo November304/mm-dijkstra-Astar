@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class CameraController : MonoBehaviour
 {
@@ -15,8 +14,13 @@ public class CameraController : MonoBehaviour
     private Vector2 moveInput;
     private float scrollInput;
 
+
+    public SetPositions setPos = SetPositions.NONE;
+    public static CameraController Instance;
+
     private void Awake()
     {
+        Instance = this;
         cam = Camera.main;
         if (cam == null)
         {
@@ -28,14 +32,14 @@ public class CameraController : MonoBehaviour
 
     private void OnEnable()
     {
-        // Assurez-vous de créer un Input Action Asset et de l'attacher ici
-
-
         playerControls.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         playerControls.Player.Move.canceled += ctx => moveInput = Vector2.zero;
 
         playerControls.Player.Scroll.performed += ctx => scrollInput = ctx.ReadValue<float>();
         playerControls.Player.Scroll.canceled += ctx => scrollInput = 0f;
+
+        playerControls.Player.RightClick.performed += ctx => SetWall(playerControls.Player.Position.ReadValue<Vector2>());
+        playerControls.Player.LeflClick.performed += ctx => SetPathPositions(playerControls.Player.Position.ReadValue<Vector2>());
 
         playerControls.Enable();
     }
@@ -62,7 +66,38 @@ public class CameraController : MonoBehaviour
 
     private void HandleMovement()
     {
-        Vector3 direction = new Vector3(moveInput.x, moveInput.y, 0);
-        transform.Translate(direction * moveSpeed * Time.deltaTime);
+        // Ajuster la vitesse de déplacement en fonction du zoom
+        float adjustedMoveSpeed = moveSpeed * cam.orthographicSize / 10;
+
+        Vector3 direction = new(moveInput.x, moveInput.y, 0);
+        transform.Translate(adjustedMoveSpeed * Time.deltaTime * direction);
+    }
+
+    private void SetWall(Vector2 mousePos)
+    {
+        Vector3 worldPos = cam.ScreenToWorldPoint(mousePos);
+        Vector2Int gridPos = Generator.Instance.WorldToTilemapPos(worldPos);
+        Generator.Instance.TrySetPos(gridPos, TileState.WALL);
+    }
+
+    private void SetPathPositions(Vector2 mousePos)
+    {
+        Vector3 worldPos = cam.ScreenToWorldPoint(mousePos);
+        Vector2Int gridPos = Generator.Instance.WorldToTilemapPos(worldPos);
+        switch (setPos)
+        {
+            case SetPositions.NONE:
+                Generator.Instance.TrySetPos(gridPos, TileState.NORMAL);
+                return;
+            case SetPositions.START:
+                Generator.Instance.TrySetPos(gridPos, TileState.START);
+                UIManager.Instance.SetStartPos(gridPos);
+                break;
+            case SetPositions.END:
+                Generator.Instance.TrySetPos(gridPos, TileState.END);
+                UIManager.Instance.SetEndPos(gridPos);
+                break;
+        }
+        setPos = SetPositions.NONE;
     }
 }

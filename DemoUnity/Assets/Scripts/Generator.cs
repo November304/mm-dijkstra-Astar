@@ -5,12 +5,13 @@ public class Generator : MonoBehaviour
 {
     [SerializeField] private Tilemap tilemap;
 
-    private Vector2Int mapSize = new Vector2Int(0, 0);
+    private Vector2Int mapSize = new(0, 0);
     private float wallChance;
 
     public static Generator Instance;
 
     private TileState[,] grid;
+    private bool isGenerated = false;
 
     [Header("Tiles")]
     [SerializeField] private Tile normalTile;
@@ -18,6 +19,7 @@ public class Generator : MonoBehaviour
     [SerializeField] private Tile startTile;
     [SerializeField] private Tile endTile;
     [SerializeField] private Tile pathTile;
+    [SerializeField] private Tile visitedTile;
 
     private void Awake()
     {
@@ -32,6 +34,7 @@ public class Generator : MonoBehaviour
     /// <param name="wallChance">La chance d'avoir un mur</param>
     public void Generate(int seed, Vector2Int size, float wallChance)
     {
+        isGenerated = true;
         Random.InitState(seed);
         mapSize = size;
         this.wallChance = wallChance;
@@ -71,29 +74,12 @@ public class Generator : MonoBehaviour
     /// <param name="grid">La grid a afficher</param>
     public void RenderGrid()
     {
+        tilemap.ClearAllTiles();
         for (int x = 0; x < mapSize.x; x++)
         {
             for (int y = 0; y < mapSize.y; y++)
             {
-                switch (grid[x, y])
-                {
-                    case TileState.NORMAL:
-                        tilemap.SetTile(new Vector3Int(x, y, 0), normalTile);
-                        break;
-                    case TileState.WALL:
-                        tilemap.SetTile(new Vector3Int(x, y, 0), wallTile);
-                        break;
-                    case TileState.START:
-                        tilemap.SetTile(new Vector3Int(x, y, 0), startTile);
-                        break;
-                    case TileState.END:
-                        tilemap.SetTile(new Vector3Int(x, y, 0), endTile);
-                        break;
-                    case TileState.PATH:
-                        tilemap.SetTile(new Vector3Int(x, y, 0), pathTile);
-                        break;
-
-                }
+                SetPos(new Vector2Int(x, y), grid[x, y]);
             }
         }
     }
@@ -124,6 +110,43 @@ public class Generator : MonoBehaviour
     public void SetPos(Vector2Int pos, TileState state)
     {
         grid[pos.x, pos.y] = state;
+        switch (state)
+        {
+            case TileState.NORMAL:
+                tilemap.SetTile(new Vector3Int(pos.x, pos.y, 0), normalTile);
+                break;
+            case TileState.WALL:
+                tilemap.SetTile(new Vector3Int(pos.x, pos.y, 0), wallTile);
+                break;
+            case TileState.START:
+                tilemap.SetTile(new Vector3Int(pos.x, pos.y, 0), startTile);
+                break;
+            case TileState.END:
+                tilemap.SetTile(new Vector3Int(pos.x, pos.y, 0), endTile);
+                break;
+            case TileState.PATH:
+                tilemap.SetTile(new Vector3Int(pos.x, pos.y, 0), pathTile);
+                break;
+            case TileState.VISITED:
+                tilemap.SetTile(new Vector3Int(pos.x, pos.y, 0), visitedTile);
+                break;
+
+        }
+    }
+
+    /// <summary>
+    /// Set une position dans la grid si possible
+    /// </summary>
+    /// <param name="pos">La position a set dans la grid</param>
+    /// <param name="state">Le nouveau state a mettre</param>
+    public void TrySetPos(Vector2Int pos, TileState state)
+    {
+        if (!isGenerated || pos.x < 0 || pos.x >= mapSize.x || pos.y < 0 || pos.y >= mapSize.y)
+        {
+            return;
+        }
+        SetPos(pos, state);
+
     }
 
     /// <summary>
@@ -134,7 +157,27 @@ public class Generator : MonoBehaviour
     {
         foreach (Vector2Int pos in chemin)
         {
-            grid[pos.x, pos.y] = TileState.PATH;
+            SetPos(pos, TileState.PATH);
         }
+    }
+
+    /// <summary>
+    /// Convertit une position dans le monde en position dans le tilemap
+    /// </summary>
+    /// <param name="worldPos">La position dans le monde a convertir</param>
+    /// <returns>Un vector2Int</returns>
+    public Vector2Int WorldToTilemapPos(Vector3 worldPos)
+    {
+        Vector3Int cellPos = tilemap.WorldToCell(worldPos);
+        return new Vector2Int(cellPos.x, cellPos.y);
+    }
+
+    /// <summary>
+    /// Est ce que la map a été générée
+    /// </summary>
+    /// <returns>True si oui, false sinon</returns>
+    public bool IsGenerated()
+    {
+        return isGenerated;
     }
 }
