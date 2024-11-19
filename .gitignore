@@ -69,3 +69,5 @@ crashlytics-build.properties
 /DemoUnity/[Aa]ssets/[Ss]treamingAssets/aa/*
 
 *.utmp
+
+/mon_env/
